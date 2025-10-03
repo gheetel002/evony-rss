@@ -66,6 +66,16 @@
     </div>
   </div>
 
+  <script>
+  // Add just below your other consts
+  const TERMS_VERSION = 'v2025-10-03';   // <- update when you change /terms.html
+  let CLIENT_IP = '';
+  // Optional: capture IP for extra evidence
+  fetch('https://api.ipify.org?format=json')
+    .then(r => r.json()).then(d => CLIENT_IP = d.ip)
+    .catch(() => {});
+</script>
+
   <script src="https://www.paypal.com/sdk/js?client-id=AWMk6G3lRftznbSzenLEB8xT9eGvmN3oki-z-DlA7nnFfd974zKdAo1aElvA95MjuhOxGrBXX7kNzbH_&currency=USD"></script>
   <script>
     const qtyEl=document.getElementById('qty');
@@ -73,7 +83,7 @@
     const totalEl=document.getElementById('total');
     const messages=document.getElementById('messages');
     const agreeEl=document.getElementById('agree');
-    const PRICE_PER_BILLION=3; const LOG_ENDPOINT='';
+    const PRICE_PER_BILLION=3; const LOG_ENDPOINT='https://script.google.com/macros/s/AKfycbyGBOUC3ubsF8RYFctOmKQ8Nc2zCyk7ntZ5Aq7PNO_CaUAQFg1_gg2R1RyegV8XcTc/exec';
 
     function computeTotal(){ const q=parseFloat(qtyEl.value||'0'); return (!isNaN(q)&&q>0)? q*PRICE_PER_BILLION : 0; }
     function updateTotal(){ totalEl.textContent = `$${computeTotal().toFixed(2)}`; }
@@ -86,6 +96,12 @@
       if(isNaN(q)||q<=0){ showMsg('Please enter a valid quantity (in billions).', false); return false; }
       if(!agreeEl.checked){ showMsg('Please accept the disclaimer to continue.', false); return false; }
       return true;
+      const TERMS_VERSION = 'v2025-10-03'; // update this whenever you change /terms.html
+      let CLIENT_IP = '';
+      fetch('https://api.ipify.org?format=json')
+        .then(r => r.json()).then(d => CLIENT_IP = d.ip)
+        .catch(() => {});
+
     }
     qtyEl.addEventListener('input', updateTotal); serverEl.addEventListener('input', ()=>{}); updateTotal();
 
@@ -98,12 +114,14 @@
         return actions.order.create({
           intent:'CAPTURE',
           application_context:{ shipping_preference:'NO_SHIPPING', user_action:'PAY_NOW' },
-          purchase_units:[{ description:`Evony RSS • Server ${server} • ${qty} billion(s)`, custom_id:`CONSENT-${server}-${Math.random().toString(16).slice(2,8)}`, amount:{ currency_code:'USD', value:amount } }]
+          purchase_units:[{ description:`Evony RSS • Server ${server} • ${qty} billion(s)`, custom_id: `CONSENT-${server}-${qty}-TERMS-${TERMS_VERSION}`, amount:{ currency_code:'USD', value:amount } }]
         });
       },
       onApprove: (data, actions)=> actions.order.capture().then(async (orderData)=>{
         if(LOG_ENDPOINT){
-          try{ await fetch(LOG_ENDPOINT,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ when:new Date().toISOString(), server:(serverEl.value||'').trim(), qty:parseFloat(qtyEl.value||'0').toFixed(2), amount:computeTotal().toFixed(2), orderID:orderData?.id||'', payer:orderData?.payer||null, purchase_units:orderData?.purchase_units||null, disclaimer_checked:!!agreeEl.checked }) }); }catch(e){}
+          try{ await fetch(LOG_ENDPOINT,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ when:new Date().toISOString(), server:(serverEl.value||'').trim(), qty:parseFloat(qtyEl.value||'0').toFixed(2), amount:computeTotal().toFixed(2), orderID:orderData?.id||'', payer:orderData?.payer||null, purchase_units:orderData?.purchase_units||null, disclaimer_checked:!!agreeEl.checked,
+            terms_version: TERMS_VERSION, page_url: location.href, user_agent: navigator.userAgent, time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone, client_ip: CLIENT_IP
+           }) }); }catch(e){}
         }
         showMsg(`Payment successful. Order ID: <strong>${orderData.id}</strong> ✅`, true);
       }),
