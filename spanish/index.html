@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rincón de RSS de Evony</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="header">
+    <div class="bar">
+      <div class="brand">Rincón de RSS de Evony</div>
+      <a class="lang" href="/">English</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Rincón de RSS de Evony</h1>
+      <p class="sub">Cotización y pago instantáneo para un servicio digital de RSS. Precio fijo: <strong>3&nbsp;USD por 1&nbsp;mil millones (10⁹) de RSS</strong>.</p>
+
+      <div class="grid">
+        <div class="field">
+          <label for="server">Número del servidor</label>
+          <input id="server" type="number" min="1" placeholder="p. ej., 1329" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="qty">Cantidad (en miles de millones, 10⁹)</label>
+          <input id="qty" type="number" min="0.25" max="10000" step="0.25" placeholder="p. ej., 10" inputmode="decimal">
+          <div class="note">Multiplicamos tu cantidad × 3 para calcular el precio.</div>
+        </div>
+      </div>
+
+      <div class="total">
+        <div>Cotización final</div>
+        <strong id="total">$0.00</strong>
+      </div>
+      <div class="note">Fórmula: <code>total = cantidad × $3</code></div>
+
+      <div class="row">
+        <span class="pill">Servicio digital • Sin envío</span>
+        <span class="pill"><a class="lang" href="/">English → Home</a></span>
+      </div>
+
+      <div class="discord">
+        Atención al cliente / consultas: Únete a nuestro Discord → 
+        <a href="https://discord.gg/2pk86pxC3T" target="_blank" rel="noopener">https://discord.gg/2pk86pxC3T</a>
+      </div>
+
+      <label class="disclaimer">
+        <input type="checkbox" id="agree">
+        <span>
+          Confirmo que es un <strong>servicio digital</strong>, que ingresé correctamente el <strong>número del servidor</strong> y la <strong>cantidad</strong>, y acepto los 
+          <a href="/terms.html" target="_blank" rel="noopener">Términos/Política de reembolsos</a>. Entiendo que se capturarán los datos del pedido.
+        </span>
+      </label>
+
+      <div id="messages"></div>
+      <div class="actions">
+        <div id="paypal-button-container"></div>
+      </div>
+      <p class="note important" id="post-purchase">
+        Tras confirmar la compra, por favor envía una captura de pantalla al administrador del servidor y recoge el RSS.
+      </p>
+      <footer>© 2025 Evony RSS Corner</footer>
+    </div>
+  </div>
+
+  <script src="https://www.paypal.com/sdk/js?client-id=AWMk6G3lRftznbSzenLEB8xT9eGvmN3oki-z-DlA7nnFfd974zKdAo1aElvA95MjuhOxGrBXX7kNzbH_&currency=USD"></script>
+  <script>
+    const qtyEl=document.getElementById('qty');
+    const serverEl=document.getElementById('server');
+    const totalEl=document.getElementById('total');
+    const messages=document.getElementById('messages');
+    const agreeEl=document.getElementById('agree');
+    const PRICE_PER_BILLION=3; const LOG_ENDPOINT='';
+
+    function computeTotal(){ const q=parseFloat(qtyEl.value||'0'); return (!isNaN(q)&&q>0)? q*PRICE_PER_BILLION : 0; }
+    function updateTotal(){ totalEl.textContent = `$${computeTotal().toFixed(2)}`; }
+    function showMsg(html, ok=true){ messages.innerHTML = `<div class="${ok?'success':'error'}">${html}</div>`; }
+    function inputsOk(){
+      messages.innerHTML='';
+      const server=(serverEl.value||'').trim();
+      const q=parseFloat(qtyEl.value||'0');
+      if(!server){ showMsg('Por favor, introduce el número del servidor.', false); return false; }
+      if(isNaN(q)||q<=0){ showMsg('Por favor, introduce una cantidad válida (en miles de millones).', false); return false; }
+      if(!agreeEl.checked){ showMsg('Debes aceptar el aviso para continuar.', false); return false; }
+      return true;
+    }
+    qtyEl.addEventListener('input', updateTotal); serverEl.addEventListener('input', ()=>{}); updateTotal();
+
+    paypal.Buttons({
+      onClick: ()=> inputsOk(),
+      createOrder: (data, actions)=>{
+        const amount=computeTotal().toFixed(2);
+        const server=(serverEl.value||'').trim();
+        const qty=parseFloat(qtyEl.value||'0').toFixed(2);
+        return actions.order.create({
+          intent:'CAPTURE',
+          application_context:{ shipping_preference:'NO_SHIPPING', user_action:'PAY_NOW' },
+          purchase_units:[{ description:`Evony RSS • Servidor ${server} • ${qty} mil millones`, custom_id:`CONSENT-${server}-${Math.random().toString(16).slice(2,8)}`, amount:{ currency_code:'USD', value:amount } }]
+        });
+      },
+      onApprove: (data, actions)=> actions.order.capture().then(async (orderData)=>{
+        if(LOG_ENDPOINT){
+          try{ await fetch(LOG_ENDPOINT,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ when:new Date().toISOString(), server:(serverEl.value||'').trim(), qty:parseFloat(qtyEl.value||'0').toFixed(2), amount:computeTotal().toFixed(2), orderID:orderData?.id||'', payer:orderData?.payer||null, purchase_units:orderData?.purchase_units||null, disclaimer_checked:!!agreeEl.checked }) }); }catch(e){}
+        }
+        showMsg(`Pago realizado con éxito. ID de pedido: <strong>${orderData.id}</strong> ✅`, true);
+      }),
+      onError: (err)=>{ console.error(err); showMsg('Ocurrió un problema con PayPal. Inténtalo de nuevo o contáctanos.', false); }
+    }).render('#paypal-button-container');
+  </script>
+</body>
+</html>
