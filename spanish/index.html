@@ -86,7 +86,13 @@
     .then(r => r.json()).then(d => CLIENT_IP = d.ip)
     .catch(() => {});
 
+  <!-- LIVE (production paypal) -->
   <script src="https://www.paypal.com/sdk/js?client-id=AWMk6G3lRftznbSzenLEB8xT9eGvmN3oki-z-DlA7nnFfd974zKdAo1aElvA95MjuhOxGrBXX7kNzbH_&currency=USD"></script>
+  <!-- LIVE (production paypal) -->
+
+  <!-- SANDBOX (test paypal) -->
+  <!-- <script src="https://www.paypal.com/sdk/js?client-id=AXztSpDnc3FdFkJlq_uehufmv5vWbXecmD5wu8soH5-mrdpVgwbo5KP2yel96tJNnNiKsHNNCyyUZsXu&currency=USD"></script> --> 
+  <!-- SANDBOX (test paypal) -->
   <script>
     const qtyEl=document.getElementById('qty');
     const serverEl=document.getElementById('server');
