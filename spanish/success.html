@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pago realizado</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="center">
+    <div class="card">
+      <h1>Pago completado 🎉</h1>
+      <p class="big">Por favor toma una captura de esta página (incluido el ID de pedido) y compártela con el administrador del servidor para recibir tu RSS.</p>
+      <div id="order" class="order"></div>
+      <p class="note">¿Necesitas ayuda? Únete a nuestro Discord → <a href="https://discord.gg/2pk86pxC3T" target="_blank" rel="noopener">https://discord.gg/2pk86pxC3T</a></p>
+      <p><a href="/spanish/">← Volver al inicio</a></p>
+    </div>
+  </div>
+  <script>
+    const box = document.getElementById('order');
+    let data = null;
+    try { data = JSON.parse(sessionStorage.getItem('evony_order')||'null'); } catch(e){ data=null; }
+    if(data){
+      box.innerHTML = `
+        <strong>ID de pedido:</strong> ${data.orderID}<br>
+        <strong>Servidor:</strong> ${data.server}<br>
+        <strong>Cantidad (en miles de millones):</strong> ${data.qty}<br>
+        <strong>Importe cobrado:</strong> $${data.amount}<br>
+        <strong>Fecha y hora:</strong> ${new Date(data.when).toLocaleString()}
+      `;
+    } else {
+      box.innerHTML = 'No se encontraron los datos del pedido. Si acabas de pagar, comparte tu recibo de PayPal con el administrador.';
+    }
+  </script>
+</body>
+</html>

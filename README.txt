@@ -1,7 +1,15 @@
-LOCAL TEST + HOSTINGER DEPLOY
-- Open folder in VS Code.
-- Local static server: `python -m http.server 8000` → http://127.0.0.1:8000/
-- To test logging via PHP: `php -S localhost:8000 -t .`
-- Spanish page: /spanish/
-- Replace PayPal sandbox client id `sb` with your live client id before going live.
-- Upload everything under /public_html on Hostinger. Enable SSL.
+Evony RSS Corner — Netlify Forms + PayPal Sandbox
+=================================================
+- PayPal SANDBOX only (client-id=sb). Switch to LIVE later by replacing the script tag.
+- After approval:
+  1) Hidden Netlify Form "consent" captures all order data.
+  2) Minimal order info saved in sessionStorage.
+  3) Redirect to /success.html (or /spanish/success.html).
+
+See submissions: Netlify → Forms → consent → Submissions (export CSV, email notifications).
+
+To go LIVE later:
+<!-- SANDBOX -->
+<script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
+<!-- LIVE -->
+<script src="https://www.paypal.com/sdk/js?client-id=YOUR_LIVE_CLIENT_ID&currency=USD"></script>

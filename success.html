@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment successful</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="center">
+    <div class="card">
+      <h1>Payment complete 🎉</h1>
+      <p class="big">Please take a screenshot of this page (including the Order ID) and share it with your server admin to receive your RSS.</p>
+      <div id="order" class="order"></div>
+      <p class="note">Need help? Join our Discord → <a href="https://discord.gg/2pk86pxC3T" target="_blank" rel="noopener">https://discord.gg/2pk86pxC3T</a></p>
+      <p><a href="/">← Back to home</a></p>
+    </div>
+  </div>
+  <script>
+    const box = document.getElementById('order');
+    let data = null;
+    try { data = JSON.parse(sessionStorage.getItem('evony_order')||'null'); } catch(e){ data=null; }
+    if(data){
+      box.innerHTML = `
+        <strong>Order ID:</strong> ${data.orderID}<br>
+        <strong>Server:</strong> ${data.server}<br>
+        <strong>Quantity (billions):</strong> ${data.qty}<br>
+        <strong>Amount charged:</strong> $${data.amount}<br>
+        <strong>Timestamp:</strong> ${new Date(data.when).toLocaleString()}
+      `;
+    } else {
+      box.innerHTML = 'Order details not found. If you just paid, please share your PayPal receipt with the admin.';
+    }
+  </script>
+</body>
+</html>

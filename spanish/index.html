@@ -60,51 +60,30 @@
         <div id="paypal-button-container"></div>
       </div>
       <p class="note important" id="post-purchase">
-        Tras confirmar la compra, por favor envía una captura de pantalla al administrador del servidor y recoge el RSS.
+        Tras confirmar la compra, por favor comparte una captura de pantalla con el administrador del servidor para recoger tu RSS.
       </p>
       <footer>© 2025 Evony RSS Corner</footer>
     </div>
   </div>
 
+  <!-- PayPal SANDBOX -->
+  <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
+
   <script>
-  // Add just below your other consts
-  const TERMS_VERSION = 'v2025-10-03';   // <- update when you change /terms.html
-  let CLIENT_IP = '';
-  // Optional: capture IP for extra evidence
-  fetch('https://api.ipify.org?format=json')
-    .then(r => r.json()).then(d => CLIENT_IP = d.ip)
-    .catch(() => {});
-</script>
+    const TERMS_VERSION  = 'v2025-10-03';
+    let CLIENT_IP = '';
+    fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>CLIENT_IP=d.ip).catch(()=>{});
 
-  // === Config you can edit ===
-  const LOG_ENDPOINT   = '';                // <-- paste your Google Apps Script Web App URL here
-  const TERMS_VERSION  = 'v2025-10-03';     // bump whenever you change /terms.html
-
-  // Optional: capture client IP for evidence (won’t break if it fails)
-  let CLIENT_IP = '';
-  fetch('https://api.ipify.org?format=json')
-    .then(r => r.json()).then(d => CLIENT_IP = d.ip)
-    .catch(() => {});
-
-  <!-- LIVE (production paypal) -->
-  <script src="https://www.paypal.com/sdk/js?client-id=AWMk6G3lRftznbSzenLEB8xT9eGvmN3oki-z-DlA7nnFfd974zKdAo1aElvA95MjuhOxGrBXX7kNzbH_&currency=USD"></script>
-  <!-- LIVE (production paypal) -->
-
-  <!-- SANDBOX (test paypal) -->
-  <!-- <script src="https://www.paypal.com/sdk/js?client-id=AXztSpDnc3FdFkJlq_uehufmv5vWbXecmD5wu8soH5-mrdpVgwbo5KP2yel96tJNnNiKsHNNCyyUZsXu&currency=USD"></script> --> 
-  <!-- SANDBOX (test paypal) -->
-  <script>
-    const qtyEl=document.getElementById('qty');
-    const serverEl=document.getElementById('server');
-    const totalEl=document.getElementById('total');
-    const messages=document.getElementById('messages');
-    const agreeEl=document.getElementById('agree');
-    const PRICE_PER_BILLION=3; const LOG_ENDPOINT='https://script.google.com/macros/s/AKfycbyGBOUC3ubsF8RYFctOmKQ8Nc2zCyk7ntZ5Aq7PNO_CaUAQFg1_gg2R1RyegV8XcTc/exec';
-    
+    const qtyEl = document.getElementById('qty');
+    const serverEl = document.getElementById('server');
+    const totalEl = document.getElementById('total');
+    const messages = document.getElementById('messages');
+    const agreeEl = document.getElementById('agree');
+    const PRICE_PER_BILLION = 3;
 
     function computeTotal(){ const q=parseFloat(qtyEl.value||'0'); return (!isNaN(q)&&q>0)? q*PRICE_PER_BILLION : 0; }
     function updateTotal(){ totalEl.textContent = `$${computeTotal().toFixed(2)}`; }
-    function showMsg(html, ok=true){ messages.innerHTML = `<div class="${ok?'success':'error'}">${html}</div>`; }
+    function showMsg(html, ok=true){ messages.innerHTML = `<div class="${ok ? 'success' : 'error'}">${html}</div>`; }
     function inputsOk(){
       messages.innerHTML='';
       const server=(serverEl.value||'').trim();
@@ -113,14 +92,20 @@
       if(isNaN(q)||q<=0){ showMsg('Por favor, introduce una cantidad válida (en miles de millones).', false); return false; }
       if(!agreeEl.checked){ showMsg('Debes aceptar el aviso para continuar.', false); return false; }
       return true;
-      const TERMS_VERSION = 'v2025-10-03'; // update this whenever you change /terms.html
-        let CLIENT_IP = '';
-        fetch('https://api.ipify.org?format=json')
-          .then(r => r.json()).then(d => CLIENT_IP = d.ip)
-          .catch(() => {});
-
     }
-    qtyEl.addEventListener('input', updateTotal); serverEl.addEventListener('input', ()=>{}); updateTotal();
+    qtyEl.addEventListener('input', updateTotal); updateTotal();
+
+    function submitConsent(data){
+      const formName = 'consent';
+      const form = document.querySelector('form[name="consent"]');
+      if(!form) return Promise.resolve();
+      Object.entries(data).forEach(([k,v])=>{
+        const el = form.querySelector(`[name="${k}"]`);
+        if(el) el.value = typeof v === 'string' ? v : JSON.stringify(v);
+      });
+      const payload = new URLSearchParams({ 'form-name': formName, ...Object.fromEntries(Object.entries(data).map(([k,v])=>[k,String(v)])) }).toString();
+      return fetch('/', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body: payload });
+    }
 
     paypal.Buttons({
       onClick: ()=> inputsOk(),
@@ -131,19 +116,56 @@
         return actions.order.create({
           intent:'CAPTURE',
           application_context:{ shipping_preference:'NO_SHIPPING', user_action:'PAY_NOW' },
-          purchase_units:[{ description:`Evony RSS • Servidor ${server} • ${qty} mil millones`, custom_id: `CONSENT-${server}-${qty}-TERMS-${TERMS_VERSION}`, amount:{ currency_code:'USD', value:amount } }]
+          purchase_units:[{ 
+            description: `Evony RSS • Servidor ${server} • ${qty} mil millones`,
+            custom_id: `CONSENT-${server}-${qty}-TERMS-${TERMS_VERSION}`,
+            amount:{ currency_code:'USD', value:amount } 
+          }]
         });
       },
       onApprove: (data, actions)=> actions.order.capture().then(async (orderData)=>{
-        if(LOG_ENDPOINT){
-          try{ await fetch(LOG_ENDPOINT,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ when:new Date().toISOString(), server:(serverEl.value||'').trim(), qty:parseFloat(qtyEl.value||'0').toFixed(2), amount:computeTotal().toFixed(2), orderID:orderData?.id||'', payer:orderData?.payer||null, purchase_units:orderData?.purchase_units||null, disclaimer_checked:!!agreeEl.checked, terms_version: TERMS_VERSION, page_url: location.href, 
-            user_agent: navigator.userAgent, time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone, client_ip: CLIENT_IP
-           }) }); }catch(e){}
-        }
-        showMsg(`Pago realizado con éxito. ID de pedido: <strong>${orderData.id}</strong> ✅`, true);
+        const payload = {
+          when: new Date().toISOString(),
+          server: (serverEl.value||'').trim(),
+          qty: parseFloat(qtyEl.value||'0').toFixed(2),
+          amount: computeTotal().toFixed(2),
+          orderID: orderData?.id || '',
+          payer_email: orderData?.payer?.email_address || '',
+          payer_id: orderData?.payer?.payer_id || '',
+          custom_id: orderData?.purchase_units?.[0]?.custom_id || '',
+          disclaimer_checked: agreeEl.checked ? 'yes' : 'no',
+          terms_version: TERMS_VERSION,
+          page_url: location.href,
+          user_agent: navigator.userAgent,
+          time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          client_ip: CLIENT_IP
+        };
+        try{ await submitConsent(payload); }catch(e){}
+        try{ sessionStorage.setItem('evony_order', JSON.stringify(payload)); }catch(e){}
+        location.href = '/spanish/success.html';
       }),
       onError: (err)=>{ console.error(err); showMsg('Ocurrió un problema con PayPal. Inténtalo de nuevo o contáctanos.', false); }
     }).render('#paypal-button-container');
   </script>
+
+  <!-- Netlify capture form (hidden) -->
+  <form name="consent" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input type="hidden" name="form-name" value="consent">
+    <input type="text" name="bot-field">
+    <input type="hidden" name="when">
+    <input type="hidden" name="orderID">
+    <input type="hidden" name="server">
+    <input type="hidden" name="qty">
+    <input type="hidden" name="amount">
+    <input type="hidden" name="payer_email">
+    <input type="hidden" name="payer_id">
+    <input type="hidden" name="custom_id">
+    <input type="hidden" name="disclaimer_checked">
+    <input type="hidden" name="terms_version">
+    <input type="hidden" name="page_url">
+    <input type="hidden" name="user_agent">
+    <input type="hidden" name="time_zone">
+    <input type="hidden" name="client_ip">
+  </form>
 </body>
 </html>
